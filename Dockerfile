@@ -8,6 +8,8 @@ ARG XORGXRDP_VER="0.2.10"
 ENV XORGXRDP_VER=${XORGXRDP_VER}
 ARG XRDPPULSE_VER="0.3"
 ENV XRDPPULSE_VER=${XRDPPULSE_VER}
+ARG XRDPPULSEAUDIO_VER="11.1"
+ENV XRDPPULSEAUDIO_VER=${XRDPPULSEAUDIO_VER}
 
 FROM base as builder
 
@@ -46,7 +48,7 @@ RUN dpkg -i /tmp/xorgxrdp_"${XORGXRDP_VER}"-1_amd64.deb
 WORKDIR /tmp
 RUN apt-get source pulseaudio
 RUN apt-get build-dep -yy pulseaudio
-WORKDIR /tmp/pulseaudio-11.1
+WORKDIR /tmp/pulseaudio-"${XRDPPULSEAUDIO_VER}"
 RUN dpkg-buildpackage -rfakeroot -uc -b
 
 # Build Pulse Audio module
@@ -56,12 +58,12 @@ RUN wget https://github.com/neutrinolabs/pulseaudio-module-xrdp/archive/v"${XRDP
 RUN tar -zxf pulseaudio-module-xrdp-"${XRDPPULSE_VER}".tar.gz
 WORKDIR /tmp/pulseaudio-module-xrdp-"${XRDPPULSE_VER}"
 RUN ./bootstrap
-RUN ./configure PULSE_DIR=/tmp/pulseaudio-11.1
+RUN ./configure PULSE_DIR=/tmp/pulseaudio-"${XRDPPULSEAUDIO_VER}"
 RUN make
 RUN make install
 
 FROM base
-ARG ADDITIONAL_PACKAGES=""
+ARG ADDITIONAL_PACKAGES="git sudo oracle-java8-installer"
 ENV ADDITIONAL_PACKAGES=${ADDITIONAL_PACKAGES}
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -95,8 +97,22 @@ RUN apt update && apt -y full-upgrade && apt install -y \
   && \
   rm -rf /var/cache/apt /var/lib/apt/lists && \
   mkdir -p /var/lib/xrdp-pulseaudio-installer
-COPY --from=builder /usr/lib/pulse-11.1/modules/module-xrdp-sink.so \
-                    /usr/lib/pulse-11.1/modules/module-xrdp-source.so \
+
+# Eclipse and Processing 
+
+WORKDIR /tmp
+RUN wget https://download.processing.org/processing-3.5.4-linux64.tgz
+RUN tar xfz processing-3.5.4-linux64.tgz
+RUN ~/processing-3.5.4/install.sh
+
+WORKDIR /tmp/pulseaudio-module-xrdp-"${XRDPPULSE_VER}"
+RUN ./bootstrap
+RUN ./configure PULSE_DIR=/tmp/pulseaudio-"${XRDPPULSEAUDIO_VER}"
+RUN make
+RUN make install
+  
+COPY --from=builder /usr/lib/pulse-"${XRDPPULSEAUDIO_VER}"/modules/module-xrdp-sink.so \
+                    /usr/lib/pulse-"${XRDPPULSEAUDIO_VER}"/modules/module-xrdp-source.so \
                     /var/lib/xrdp-pulseaudio-installer/
 COPY --from=builder /tmp/xrdp_${XRDP_VER}-1_amd64.deb /tmp/xorgxrdp_${XORGXRDP_VER}-1_amd64.deb /tmp/
 RUN dpkg -i /tmp/xrdp_"${XRDP_VER}"-1_amd64.deb /tmp/xorgxrdp_"${XORGXRDP_VER}"-1_amd64.deb && \

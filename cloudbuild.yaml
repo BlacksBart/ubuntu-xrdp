@@ -1,0 +1,10 @@
+#PROJECT_ID=$(gcloud config get-value project)
+#gcloud build submit --config cloudbuild.yaml .
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/bsgcp-273719/uxrdp', '.' ]
+  timeout: '7200s'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/bsgcp-273719/uxrdp']
+  timeout: '7200s'
+timeout: '7200s'
