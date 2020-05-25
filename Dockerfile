@@ -63,7 +63,7 @@ RUN make
 RUN make install
 
 FROM base
-ARG ADDITIONAL_PACKAGES="git sudo oracle-java8-installer"
+ARG ADDITIONAL_PACKAGES="git"
 ENV ADDITIONAL_PACKAGES=${ADDITIONAL_PACKAGES}
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -135,6 +135,6 @@ RUN mkdir /var/run/dbus && \
 
 # Docker config
 VOLUME ["/etc/ssh","/home"]
-EXPOSE 3389 22 9001
+EXPOSE 3390 22 9001
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 CMD ["supervisord"]
